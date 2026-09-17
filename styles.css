@@ -793,7 +793,7 @@ summary:hover {
 	gap: 8px;
 }
 
-.share-button {
+.share-action {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -810,38 +810,31 @@ summary:hover {
 	transition: transform 160ms ease, filter 160ms ease;
 }
 
-.share-button:hover,
-.share-button:focus-visible {
+.share-action:hover,
+.share-action:focus-visible {
 	transform: translateY(-2px);
 	filter: brightness(1.08);
 	outline: 0;
 }
 
-.share-button:focus-visible {
+.share-action:focus-visible {
 	box-shadow: 0 0 0 3px rgba(244, 119, 67, 0.28);
 }
 
-.share-button:disabled {
+.share-action:disabled {
 	opacity: 0.55;
 	cursor: wait;
 	transform: none;
 	filter: none;
 }
 
-.share-button--linkedin {
+
+.share-action--download {
 	background: #0a66c2;
 }
 
-.share-button--twitter {
-	background: #17324d;
-}
-
-.share-button--whatsapp {
-	background: #1fbd6a;
-}
-
-.share-button--instagram {
-	background: #d84a78;
+.share-action--share {
+	background: #f47743;
 }
 
 .share-tools__status {

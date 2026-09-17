@@ -265,7 +265,6 @@
 		document.getElementById("visited-count").textContent = visitedCount;
 		document.getElementById("total-count").textContent = locationCount;
 		document.querySelector(".chart-value").textContent = percentage + "%";
-		updateShareLinks();
 
 		if (chart) {
 			chart.data.datasets[0].data = [visitedCount, Math.max(locationCount - visitedCount, 0)];
@@ -278,21 +277,6 @@
 		var shareUrl = window.location.href;
 		var shareText = "I have explored " + visitedCount + " of " + locationCount + " destinations with World Explorer Tracker.";
 		return { url: shareUrl, text: shareText, title: "My World Explorer Travel Card" };
-	}
-
-	function updateShareLinks() {
-		var details = getShareDetails();
-		var encodedUrl = encodeURIComponent(details.url);
-		var encodedText = encodeURIComponent(details.text);
-		var linkedIn = document.getElementById("shareLinkedIn");
-		var twitter = document.getElementById("shareTwitter");
-		var whatsApp = document.getElementById("shareWhatsApp");
-		var instagram = document.getElementById("shareInstagram");
-
-		if (linkedIn) linkedIn.dataset.shareUrl = "https://www.linkedin.com/sharing/share-offsite/?url=" + encodedUrl;
-		if (twitter) twitter.dataset.shareUrl = "https://twitter.com/intent/tweet?text=" + encodedText + "&url=" + encodedUrl;
-		if (whatsApp) whatsApp.dataset.shareUrl = "https://wa.me/?text=" + encodeURIComponent(details.text + " " + details.url);
-		if (instagram) instagram.dataset.shareUrl = "https://www.instagram.com/";
 	}
 
 	function createTravelCardImage(callback) {
@@ -356,40 +340,71 @@
 		mapImage.src = mapUrl;
 	}
 
-	function shareTravelCardImage(platform, fallbackUrl) {
-		var status = document.getElementById("shareStatus");
-		var shareButtons = Array.from(document.querySelectorAll(".share-button"));
-		var shareWindow = fallbackUrl ? window.open(fallbackUrl, "_blank") : null;
-		shareButtons.forEach(function (button) { button.disabled = true; });
-		var finish = function () {
-			shareButtons.forEach(function (button) { button.disabled = false; });
-		};
+	function setTravelCardActionsBusy(isBusy) {
+		document.querySelectorAll(".share-action").forEach(function (button) {
+			button.disabled = isBusy;
+		});
+	}
 
+	function getTravelCardBlob(callback) {
 		createTravelCardImage(function (canvas) {
-			canvas.toBlob(function (blob) {
-				if (!blob) {
-					status.textContent = "Unable to create the travel card image.";
-					finish();
-					return;
-				}
+			canvas.toBlob(callback, "image/png");
+		});
+	}
 
-				var downloadUrl = URL.createObjectURL(blob);
-				var downloadLink = document.createElement("a");
-				downloadLink.href = downloadUrl;
-				downloadLink.download = "world-explorer-travel-card.png";
-				downloadLink.style.display = "none";
-				document.body.appendChild(downloadLink);
-				downloadLink.click();
-				downloadLink.remove();
-				setTimeout(function () { URL.revokeObjectURL(downloadUrl); }, 1000);
-				if (fallbackUrl && !shareWindow) {
-					status.textContent = "Your browser blocked the share window. Image downloaded; open " + platform + " to finish sharing.";
-					finish();
-					return;
-				}
-				status.textContent = "Image downloaded. Attach it in " + platform + " to finish sharing.";
-				finish();
-			}, "image/png");
+	function downloadTravelCardBlob(blob) {
+		var downloadUrl = URL.createObjectURL(blob);
+		var downloadLink = document.createElement("a");
+		downloadLink.href = downloadUrl;
+		downloadLink.download = "world-explorer-travel-card.png";
+		downloadLink.click();
+		setTimeout(function () { URL.revokeObjectURL(downloadUrl); }, 1000);
+	}
+
+	function downloadTravelCard() {
+		var status = document.getElementById("shareStatus");
+		setTravelCardActionsBusy(true);
+		getTravelCardBlob(function (blob) {
+			if (!blob) {
+				status.textContent = "Unable to create the travel card image.";
+				setTravelCardActionsBusy(false);
+				return;
+			}
+
+			downloadTravelCardBlob(blob);
+			status.textContent = "Travel card image downloaded.";
+			setTravelCardActionsBusy(false);
+		});
+	}
+
+	function shareTravelCard() {
+		var status = document.getElementById("shareStatus");
+		var details = getShareDetails();
+		setTravelCardActionsBusy(true);
+		getTravelCardBlob(function (blob) {
+			if (!blob) {
+				status.textContent = "Unable to create the travel card image.";
+				setTravelCardActionsBusy(false);
+				return;
+			}
+
+			var file = new File([blob], "world-explorer-travel-card.png", { type: "image/png" });
+			var shareData = { title: details.title, text: details.text, url: details.url };
+			if (navigator.canShare && navigator.canShare({ files: [file] })) shareData.files = [file];
+
+			if (!navigator.share) {
+				downloadTravelCardBlob(blob);
+				status.textContent = "Device sharing is unavailable, so the image was downloaded.";
+				setTravelCardActionsBusy(false);
+				return;
+			}
+
+			navigator.share(shareData)
+				.then(function () { status.textContent = "Travel card shared."; })
+				.catch(function (error) {
+					if (error.name !== "AbortError") status.textContent = "Sharing was cancelled or unavailable.";
+				})
+				.finally(function () { setTravelCardActionsBusy(false); });
 		});
 	}
 
@@ -664,11 +679,10 @@
 		var beginButton = document.getElementById("beginExpedition");
 
 		if (viewStatsButton) viewStatsButton.addEventListener("click", openStats);
-		document.querySelectorAll(".share-button").forEach(function (shareButton) {
-			shareButton.addEventListener("click", function () {
-				shareTravelCardImage(this.dataset.sharePlatform, this.dataset.shareUrl);
-			});
-		});
+		var downloadButton = document.getElementById("downloadTravelCard");
+		var shareButton = document.getElementById("shareTravelCard");
+		if (downloadButton) downloadButton.addEventListener("click", downloadTravelCard);
+		if (shareButton) shareButton.addEventListener("click", shareTravelCard);
 		document.querySelectorAll("[data-close-stats]").forEach(function (element) {
 			element.addEventListener("click", closeStats);
 		});

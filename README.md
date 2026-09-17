@@ -89,7 +89,7 @@ Because these resources are remote, data availability and application startup de
 
 Destination selections are stored locally in the browser. The project does not include a backend, user account system, or application database. Clearing browser storage for the site will remove the saved travel selections.
 
-Sharing a travel card may use the browser's native share API where supported. On unsupported browsers, the generated PNG is downloaded and the relevant social platform is opened as a fallback.
+The travel card can be downloaded as a PNG. The Share action uses the browser's native share API where supported, including the generated card image; on unsupported browsers it downloads the image so it can be shared manually.
 
 ## Current Scope
 
